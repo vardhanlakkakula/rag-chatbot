@@ -117,7 +117,9 @@ app.add_middleware(
 
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
+        "https://rag-chatbot-1-9ld0.onrender.com",
+
     ],
 
     allow_credentials=True,
