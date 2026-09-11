@@ -42,6 +42,7 @@ from backend.rag.generator import (
 
 from backend.rag.qdrant_store import (
     create_qdrant_client,
+    create_collection,
     COLLECTION_NAME
 )
 
@@ -175,6 +176,10 @@ client = create_gemini_client()
 # ============================================================
 
 qdrant_client = create_qdrant_client()
+
+# Create the Qdrant collection if it does not exist yet.
+# This is required for a fresh deployment Qdrant cluster.
+create_collection(qdrant_client)
 
 
 # ============================================================
