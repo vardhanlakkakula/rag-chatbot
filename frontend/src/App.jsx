@@ -443,6 +443,32 @@ function App() {
     useRef(null);
 
 
+  // Close attachment popup when clicking anywhere outside it.
+  useEffect(() => {
+    if (!attachmentMenuOpen) {
+      return;
+    }
+
+    const handleAttachmentOutsideClick = (event) => {
+      if (!event.target?.closest?.(".plus-wrapper")) {
+        setAttachmentMenuOpen(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleAttachmentOutsideClick
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleAttachmentOutsideClick
+      );
+    };
+  }, [attachmentMenuOpen]);
+
+
   useEffect(() => {
     conversationIdRef.current = selectedConversationId;
   }, [selectedConversationId]);
