@@ -5,6 +5,8 @@
 import json
 import time
 
+from google.genai import types
+
 
 # ============================================================
 # Configuration
@@ -20,7 +22,9 @@ MODEL_NAME = "gemini-3.6-flash"
 def _generate_with_retry(
     client,
     prompt,
-    max_retries=4
+    max_retries=4,
+    image=None,
+    stream=False,
 ):
     """
     Generate content using Gemini with automatic retries.
@@ -43,10 +47,31 @@ def _generate_with_retry(
 
         try:
 
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
+            contents = prompt
+
+            if image:
+                image_bytes, image_mime_type = image
+
+                image_part = types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=image_mime_type,
+                )
+
+                contents = [
+                    prompt,
+                    image_part,
+                ]
+
+            if stream:
+                response = client.models.generate_content_stream(
+                    model=MODEL_NAME,
+                    contents=contents,
+                )
+            else:
+                response = client.models.generate_content(
+                    model=MODEL_NAME,
+                    contents=contents,
+                )
 
             return response
 
@@ -892,8 +917,13 @@ FINAL ANSWER
 
     response = _generate_with_retry(
         client=client,
-        prompt=prompt
+        prompt=prompt,
+        image=image,
+        stream=stream,
     )
+
+    if stream:
+        return response
 
     # ========================================================
     # Safe response
@@ -928,7 +958,9 @@ def generate_conversation_answer(
     question,
     retrieved_chunks,
     previous_messages,
-    client
+    client,
+    image=None,
+    stream=False,
 ):
     """
     Generate a conversational document-grounded answer.
@@ -1168,8 +1200,13 @@ Return only the answer that should be shown to the user.
 
         response = _generate_with_retry(
             client=client,
-            prompt=no_document_prompt
+            prompt=no_document_prompt,
+            image=image,
+            stream=stream,
         )
+
+        if stream:
+            return response
 
         if not response:
 

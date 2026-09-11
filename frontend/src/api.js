@@ -696,8 +696,51 @@ export async function sendChatMessage(
   question,
   conversationId = null,
   documentId = null,
-  token
+  token,
+  imageFile = null
 ) {
+
+  // Use multipart/form-data when an image is attached.
+  // Keep the existing JSON request unchanged for normal chat.
+  if (imageFile) {
+
+    const form =
+      new FormData();
+
+    form.append(
+      "question",
+      question?.trim() || ""
+    );
+
+    if (conversationId) {
+      form.append(
+        "conversation_id",
+        conversationId
+      );
+    }
+
+    if (documentId) {
+      form.append(
+        "document_id",
+        documentId
+      );
+    }
+
+    form.append(
+      "image",
+      imageFile
+    );
+
+    return request(
+      "/chat/message",
+      {
+        method: "POST",
+        token,
+        body: form,
+        formData: true,
+      }
+    );
+  }
 
   return request(
     "/chat/message",

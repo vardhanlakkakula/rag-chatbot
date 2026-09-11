@@ -10,6 +10,8 @@ from fastapi import (
     Depends,
     HTTPException,
     Request,
+    UploadFile,
+    File,
 )
 
 from fastapi.responses import StreamingResponse
@@ -1477,9 +1479,9 @@ def ask_conversation(
 # ============================================================
 
 @router.post("/message")
-def send_chat_message(
+async def send_chat_message(
 
-    request: ChatMessageRequest,
+    request: Request,
 
     http_request: Request,
 
@@ -1490,13 +1492,57 @@ def send_chat_message(
     db: Session = Depends(
         get_db
     ),
+
+    image: UploadFile | None = File(
+        default=None
+    ),
 ):
 
     # ========================================================
-    # 1. Validate question
+    # 1. Read JSON or multipart/form-data
     # ========================================================
 
-    question = request.question.strip()
+    content_type = (
+        request.headers.get("content-type", "")
+        .lower()
+    )
+
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+
+        question = str(
+            form.get("question") or ""
+        ).strip()
+
+        conversation_id_value = (
+            str(form.get("conversation_id"))
+            if form.get("conversation_id")
+            else None
+        )
+
+        document_id_value = (
+            str(form.get("document_id"))
+            if form.get("document_id")
+            else None
+        )
+
+    else:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+
+        chat_request = ChatMessageRequest(
+            **payload
+        )
+
+        question = chat_request.question.strip()
+        conversation_id_value = (
+            chat_conversation_id_value
+        )
+        document_id_value = (
+            chat_document_id_value
+        )
 
     if not question:
         raise HTTPException(
@@ -1504,15 +1550,40 @@ def send_chat_message(
             detail="Question cannot be empty.",
         )
 
+    # The image is optional. When supplied, keep its bytes and MIME type
+    # so the generation layer can send the actual image to Gemini.
+    image_data = None
+    image_mime_type = None
+
+    if image is not None:
+        image_data = await image.read()
+
+        if not image_data:
+            raise HTTPException(
+                status_code=400,
+                detail="The uploaded image is empty.",
+            )
+
+        if not (
+            image.content_type
+            and image.content_type.startswith("image/")
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Only image files are supported.",
+            )
+
+        image_mime_type = image.content_type
+
     # ========================================================
     # 2. Find existing conversation or create one
     # ========================================================
 
     conversation = None
 
-    if request.conversation_id:
+    if conversation_id_value:
         conversation = get_user_conversation(
-            request.conversation_id,
+            conversation_id_value,
             current_user,
             db,
         )
@@ -1521,11 +1592,11 @@ def send_chat_message(
 
         selected_document = None
 
-        if request.document_id:
+        if document_id_value:
             selected_document = (
                 db.query(Document)
                 .filter(
-                    Document.document_id == request.document_id,
+                    Document.document_id == document_id_value,
                     Document.user_id == current_user.id,
                 )
                 .first()
@@ -1568,7 +1639,7 @@ def send_chat_message(
     if conversation.document_id:
         document_id = conversation.document_id
     else:
-        document_id = request.document_id
+        document_id = document_id_value
         if document_id:
             conversation.document_id = document_id
             conversation.updated_at = datetime.utcnow()
@@ -1782,6 +1853,11 @@ def send_chat_message(
             retrieved_chunks=retrieved_chunks,
             previous_messages=previous_messages,
             client=gemini_client,
+            image=(
+                (image_data, image_mime_type)
+                if image_data
+                else None
+            ),
         )
 
         # ====================================================
@@ -1893,11 +1969,12 @@ def send_chat_message(
 # ============================================================
 
 @router.post("/message/stream")
-def send_chat_message_stream(
-    request: ChatMessageRequest,
+async def send_chat_message_stream(
+    request: Request,
     http_request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    image: UploadFile | None = File(default=None),
 ):
     """
     Streaming version of /chat/message.
@@ -1907,7 +1984,72 @@ def send_chat_message_stream(
     for the complete answer.
     """
 
-    question = (request.question or "").strip()
+    # ========================================================
+    # Read JSON or multipart/form-data
+    # ========================================================
+
+    content_type = (
+        request.headers.get("content-type", "")
+        .lower()
+    )
+
+    image_data = None
+    image_mime_type = None
+
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+
+        question = str(
+            form.get("question") or ""
+        ).strip()
+
+        conversation_id_value = (
+            str(form.get("conversation_id"))
+            if form.get("conversation_id")
+            else None
+        )
+
+        document_id_value = (
+            str(form.get("document_id"))
+            if form.get("document_id")
+            else None
+        )
+
+        uploaded_image = form.get("image")
+
+        if uploaded_image is not None and isinstance(uploaded_image, UploadFile):
+            image = uploaded_image
+
+        if image is not None:
+            image_data = await image.read()
+
+            if not image_data:
+                raise HTTPException(
+                    status_code=400,
+                    detail="The uploaded image is empty.",
+                )
+
+            if not (
+                image.content_type
+                and image.content_type.startswith("image/")
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only image files are supported.",
+                )
+
+            image_mime_type = image.content_type
+
+    else:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+
+        chat_request = ChatMessageRequest(**payload)
+        question = (chat_request.question or "").strip()
+        conversation_id_value = chat_request.conversation_id
+        document_id_value = chat_request.document_id
 
     if not question:
         raise HTTPException(
@@ -1933,9 +2075,9 @@ def send_chat_message_stream(
 
     conversation = None
 
-    if request.conversation_id:
+    if conversation_id_value:
         conversation = get_user_conversation(
-            request.conversation_id,
+            conversation_id_value,
             current_user,
             db,
         )
@@ -1943,11 +2085,11 @@ def send_chat_message_stream(
     if conversation is None:
         selected_document = None
 
-        if request.document_id:
+        if document_id_value:
             selected_document = (
                 db.query(Document)
                 .filter(
-                    Document.document_id == request.document_id,
+                    Document.document_id == document_id_value,
                     Document.user_id == current_user.id,
                 )
                 .first()
@@ -1984,7 +2126,7 @@ def send_chat_message_stream(
     if conversation.document_id:
         document_id = conversation.document_id
     else:
-        document_id = request.document_id
+        document_id = document_id_value
         if document_id:
             conversation.document_id = document_id
             conversation.updated_at = datetime.utcnow()
@@ -2153,6 +2295,11 @@ def send_chat_message_stream(
                 retrieved_chunks=retrieved_chunks,
                 previous_messages=previous_messages,
                 client=gemini_client,
+                image=(
+                    (image_data, image_mime_type)
+                    if image_data
+                    else None
+                ),
                 stream=True,
             )
 

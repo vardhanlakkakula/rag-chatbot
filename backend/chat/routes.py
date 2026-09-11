@@ -1507,9 +1507,7 @@ def retrieve_document_fallback(
 
 
 @router.post("/message")
-def send_chat_message(
-
-    request: ChatMessageRequest,
+async def send_chat_message(
 
     http_request: Request,
 
@@ -1521,6 +1519,72 @@ def send_chat_message(
         get_db
     ),
 ):
+
+    # ========================================================
+    # 0. Parse JSON or multipart/form-data
+    #
+    # FastAPI must not validate the uploaded image as a request
+    # body field. We read multipart data manually so the raw image
+    # bytes never enter FastAPI's validation-error encoder.
+    # ========================================================
+
+    image = None
+
+    content_type = http_request.headers.get(
+        "content-type",
+        ""
+    ).lower()
+
+    if content_type.startswith(
+        "multipart/form-data"
+    ):
+        form = await http_request.form()
+
+        chat_request = ChatMessageRequest(
+            question=str(
+                form.get("question") or ""
+            ),
+            conversation_id=(
+                str(form.get("conversation_id"))
+                if form.get("conversation_id")
+                else None
+            ),
+            document_id=(
+                str(form.get("document_id"))
+                if form.get("document_id")
+                else None
+            ),
+        )
+
+        uploaded_image = form.get("image")
+
+        if (
+            uploaded_image is not None
+            and hasattr(uploaded_image, "read")
+        ):
+            image_data = await uploaded_image.read()
+
+            if image_data:
+                image = (
+                    image_data,
+                    getattr(
+                        uploaded_image,
+                        "content_type",
+                        None,
+                    )
+                    or "application/octet-stream",
+                )
+
+    else:
+        payload = await http_request.json()
+
+        chat_request = ChatMessageRequest(
+            **payload
+        )
+
+    # Keep the existing request variable name below so the
+    # remainder of the chat/RAG logic stays unchanged.
+    request = chat_request
 
     # ========================================================
     # 1. Validate question
@@ -1749,6 +1813,7 @@ def send_chat_message(
             retrieved_chunks=retrieved_chunks,
             previous_messages=previous_messages,
             client=gemini_client,
+            image=image,
         )
 
         # ====================================================
@@ -1798,6 +1863,7 @@ def send_chat_message(
                     retrieved_chunks=fallback_chunks,
                     previous_messages=previous_messages,
                     client=gemini_client,
+                    image=image,
                 )
 
                 # Keep the fallback chunks as the sources shown

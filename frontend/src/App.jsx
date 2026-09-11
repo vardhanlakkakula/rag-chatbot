@@ -2137,6 +2137,7 @@ function App() {
       messageId,
       documentId,
       conversationId,
+      imageFile,
       startedAt,
       chatGeneration
     } = request;
@@ -2146,8 +2147,54 @@ function App() {
       "http://127.0.0.1:8000";
 
     const authHeaders = {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
+    };
+
+    const buildChatRequest = () => {
+      if (imageFile) {
+        const form = new FormData();
+
+        form.append(
+          "question",
+          currentQuestion
+        );
+
+        if (conversationId) {
+          form.append(
+            "conversation_id",
+            conversationId
+          );
+        }
+
+        if (documentId) {
+          form.append(
+            "document_id",
+            documentId
+          );
+        }
+
+        form.append(
+          "image",
+          imageFile
+        );
+
+        return {
+          headers: authHeaders,
+          body: form
+        };
+      }
+
+      return {
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          question: currentQuestion,
+          conversation_id: conversationId || null,
+          document_id: documentId || null
+        })
+      };
     };
 
     const isCurrentChatRequest = () =>
@@ -2226,30 +2273,26 @@ function App() {
        * backend has not been restarted yet and returns 404, automatically
        * fall back to the normal JSON endpoint so chat still works.
        */
+      const chatRequest = buildChatRequest();
+
       let response = await fetch(
         `${apiBaseUrl}/chat/message/stream`,
         {
           method: "POST",
-          headers: authHeaders,
-          body: JSON.stringify({
-            question: currentQuestion,
-            conversation_id: conversationId || null,
-            document_id: documentId || null
-          })
+          headers: chatRequest.headers,
+          body: chatRequest.body
         }
       );
 
       if (response.status === 404) {
+        const fallbackRequest = buildChatRequest();
+
         response = await fetch(
           `${apiBaseUrl}/chat/message`,
           {
             method: "POST",
-            headers: authHeaders,
-            body: JSON.stringify({
-              question: currentQuestion,
-              conversation_id: conversationId || null,
-              document_id: documentId || null
-            })
+            headers: fallbackRequest.headers,
+            body: fallbackRequest.body
           }
         );
 
@@ -2571,7 +2614,13 @@ function App() {
         file?.name?.toLowerCase().endsWith(".pdf")
       );
 
-    if (!typedQuestion && !hasAttachedPdf) return;
+    const attachedImage = attachedFiles.find(file =>
+      file?.type?.startsWith("image/")
+    );
+
+    const hasAttachedImage = Boolean(attachedImage);
+
+    if (!typedQuestion && !hasAttachedPdf && !hasAttachedImage) return;
 
     // If a PDF is sent without new text, only continue a previous
     // instruction when the assistant's immediately preceding response
@@ -2614,7 +2663,11 @@ function App() {
     const currentQuestion =
       typedQuestion ||
       pendingDocumentInstruction ||
-      "Read the uploaded document and tell me how you can help me with it.";
+      (
+        hasAttachedImage && !hasAttachedPdf
+          ? "Analyze the uploaded image and tell me what you can see."
+          : "Read the uploaded document and tell me how you can help me with it."
+      );
 
     setChatError("");
 
@@ -2787,6 +2840,7 @@ function App() {
       messageId,
       documentId,
       conversationId: activeConversationId,
+      imageFile: attachedImage || null,
       startedAt: Date.now(),
       chatGeneration: chatGenerationRef.current
     };
@@ -3932,7 +3986,11 @@ function App() {
                             </strong>
 
                             <small>
-                              PDF
+                              {file.type?.startsWith("image/")
+                                ? "IMAGE"
+                                : file.name?.toLowerCase().endsWith(".pdf")
+                                  ? "PDF"
+                                  : "FILE"}
                             </small>
                           </span>
 
@@ -4071,9 +4129,13 @@ function App() {
                     onClick={
                       handleAskQuestion
                     }
-                    disabled={!question.trim() && !attachedFiles.some(file =>
-                      file?.name?.toLowerCase().endsWith(".pdf")
-                    )}
+                    disabled={
+                      !question.trim() &&
+                      !attachedFiles.some(file =>
+                        file?.name?.toLowerCase().endsWith(".pdf") ||
+                        file?.type?.startsWith("image/")
+                      )
+                    }
                   >
                     ➤
                   </button>
@@ -4546,7 +4608,11 @@ function App() {
                             </strong>
 
                             <small>
-                              PDF
+                              {file.type?.startsWith("image/")
+                                ? "IMAGE"
+                                : file.name?.toLowerCase().endsWith(".pdf")
+                                  ? "PDF"
+                                  : "FILE"}
                             </small>
                           </span>
 
@@ -4682,9 +4748,13 @@ function App() {
                   onClick={
                     handleAskQuestion
                   }
-                  disabled={!question.trim() && !attachedFiles.some(file =>
-                      file?.name?.toLowerCase().endsWith(".pdf")
-                    )}
+                  disabled={
+                      !question.trim() &&
+                      !attachedFiles.some(file =>
+                        file?.name?.toLowerCase().endsWith(".pdf") ||
+                        file?.type?.startsWith("image/")
+                      )
+                    }
                 >
 
                   ➤
