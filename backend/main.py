@@ -60,12 +60,16 @@ from backend.auth.dependencies import (
 
 
 from backend.database.connection import (
-    get_db
+    get_db,
+    Base,
+    engine
 )
 
 from backend.database.models import (
     User,
-    Document
+    Document,
+    Conversation,
+    Message
 )
 
 
@@ -104,6 +108,15 @@ app = FastAPI(
     ),
 
     version="8.0.0"
+)
+
+
+# ============================================================
+# Initialize database tables
+# ============================================================
+
+Base.metadata.create_all(
+    bind=engine
 )
 
 
