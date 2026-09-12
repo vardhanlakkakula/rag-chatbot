@@ -2568,10 +2568,19 @@ function App() {
 
     } catch (error) {
       console.error("CHAT ERROR:", error);
-      markError(
-        error?.message ||
-        "Unable to get an answer."
-      );
+
+      const errorMessage = String(error?.message || "");
+
+      const isGeminiQuotaError =
+        /RESOURCE_EXHAUSTED|GenerateRequestsPerDayPerProjectPerModel|quota.*exceeded|daily.*quota|rate.?limit/i.test(
+          errorMessage
+        );
+
+      const userFriendlyError = isGeminiQuotaError
+        ? "Today's Gemini AI request limit has been reached. Please try again tomorrow. We are working to improve this limit in the future."
+        : errorMessage || "Unable to get an answer.";
+
+      markError(userFriendlyError);
     }
   };
 
