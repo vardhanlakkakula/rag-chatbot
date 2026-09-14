@@ -43,6 +43,42 @@ class User(Base):
     )
 
     # --------------------------------------------------------
+    # Email verification
+    # --------------------------------------------------------
+
+    email_verified = Column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    email_verification_token_hash = Column(
+        String(64),
+        nullable=True,
+        index=True
+    )
+
+    email_verification_expires_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # --------------------------------------------------------
+    # Password reset
+    # --------------------------------------------------------
+
+    password_reset_token_hash = Column(
+        String(64),
+        nullable=True,
+        index=True
+    )
+
+    password_reset_expires_at = Column(
+        DateTime,
+        nullable=True
+    )
+
+    # --------------------------------------------------------
     # Relationship with documents
     # --------------------------------------------------------
 
@@ -60,6 +96,76 @@ class User(Base):
         "Conversation",
         back_populates="user",
         cascade="all, delete-orphan"
+    )
+
+    # --------------------------------------------------------
+    # Password history
+    # --------------------------------------------------------
+
+    password_history = relationship(
+        "PasswordHistory",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="PasswordHistory.created_at"
+    )
+
+
+# ============================================================
+# Password History Model
+# ============================================================
+
+class PasswordHistory(Base):
+
+    __tablename__ = "password_history"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    # --------------------------------------------------------
+    # User who previously used this password
+    # --------------------------------------------------------
+
+    user_id = Column(
+        Integer,
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE"
+        ),
+        nullable=False,
+        index=True
+    )
+
+    # --------------------------------------------------------
+    # Previous password hash
+    # --------------------------------------------------------
+    # Never store the old password itself.
+    # Only the secure password hash is stored.
+
+    password_hash = Column(
+        String(255),
+        nullable=False
+    )
+
+    # --------------------------------------------------------
+    # When this password was added to history
+    # --------------------------------------------------------
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    # --------------------------------------------------------
+    # Relationship with User
+    # --------------------------------------------------------
+
+    user = relationship(
+        "User",
+        back_populates="password_history"
     )
 
 

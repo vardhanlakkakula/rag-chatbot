@@ -256,6 +256,32 @@ export async function loginUser(
 
 
 // ------------------------------------------------------------
+// GOOGLE LOGIN
+// ------------------------------------------------------------
+
+export async function loginWithGoogle(
+  credential
+) {
+
+  return request(
+    "/auth/google",
+    {
+
+      method: "POST",
+
+      body: {
+
+        credential,
+
+      },
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
 // CURRENT USER
 // ------------------------------------------------------------
 
@@ -270,6 +296,89 @@ export async function getCurrentUser(
       method: "GET",
 
       token,
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// VERIFY EMAIL
+// ------------------------------------------------------------
+
+export async function verifyEmail(
+  token
+) {
+
+  return request(
+    "/auth/verify-email",
+    {
+
+      method: "POST",
+
+      body: {
+
+        token,
+
+      },
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// FORGOT PASSWORD
+// ------------------------------------------------------------
+
+export async function forgotPassword(
+  email
+) {
+
+  return request(
+    "/auth/forgot-password",
+    {
+
+      method: "POST",
+
+      body: {
+
+        email:
+          email.trim(),
+
+      },
+
+    }
+  );
+
+}
+
+
+// ------------------------------------------------------------
+// RESET PASSWORD
+// ------------------------------------------------------------
+
+export async function resetPassword(
+  token,
+  newPassword
+) {
+
+  return request(
+    "/auth/reset-password",
+    {
+
+      method: "POST",
+
+      body: {
+
+        token,
+
+        new_password:
+          newPassword,
+
+      },
 
     }
   );
@@ -702,45 +811,62 @@ export async function sendChatMessage(
 
   // Use multipart/form-data when an image is attached.
   // Keep the existing JSON request unchanged for normal chat.
+
   if (imageFile) {
 
     const form =
       new FormData();
+
 
     form.append(
       "question",
       question?.trim() || ""
     );
 
+
     if (conversationId) {
+
       form.append(
         "conversation_id",
         conversationId
       );
+
     }
 
+
     if (documentId) {
+
       form.append(
         "document_id",
         documentId
       );
+
     }
+
 
     form.append(
       "image",
       imageFile
     );
 
+
     return request(
       "/chat/message",
       {
+
         method: "POST",
+
         token,
+
         body: form,
+
         formData: true,
+
       }
     );
+
   }
+
 
   return request(
     "/chat/message",

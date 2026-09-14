@@ -9,6 +9,7 @@ import "./App.css";
 import {
   loginUser,
   registerUser,
+  loginWithGoogle,
   getCurrentUser,
   getDocuments,
   uploadPDF,
@@ -20,7 +21,10 @@ import {
   updateConversation,
   deleteConversation,
   askConversation,
-  sendChatMessage
+  sendChatMessage,
+  verifyEmail,
+  forgotPassword,
+  resetPassword
 } from "./api";
 
 
@@ -318,7 +322,74 @@ function App() {
   const [authError, setAuthError] =
     useState("");
 
+  const emailVerifiedRedirect =
+    new URLSearchParams(window.location.search).get("verified") === "1";
+
   const [authMessage, setAuthMessage] =
+    useState("");
+
+  const [forgotPasswordEmail, setForgotPasswordEmail] =
+    useState("");
+
+  const [resetPasswordValue, setResetPasswordValue] =
+    useState("");
+
+  const [resetConfirmPassword, setResetConfirmPassword] =
+    useState("");
+
+  const [showResetPassword, setShowResetPassword] =
+    useState(false);
+
+  const [showResetConfirmPassword, setShowResetConfirmPassword] =
+    useState(false);
+
+  const resetPasswordToken =
+    new URLSearchParams(window.location.search).get("token");
+
+  const isResetPasswordPage =
+    window.location.pathname === "/reset-password";
+
+  // Show the verification-success message on the sign-in page.
+  // We use an effect instead of reading the URL inside the state
+  // initializer so the message is reliable in React StrictMode.
+  useEffect(() => {
+    if (!emailVerifiedRedirect) {
+      return;
+    }
+
+    setAuthMode("login");
+    setAuthError("");
+    setAuthMessage(
+      "Registration successful. Your email has been verified. Please click Sign in to continue."
+    );
+
+    // Remove the query parameter after reading it so refreshing the
+    // sign-in page does not repeatedly show the same message.
+    window.history.replaceState(
+      {},
+      "",
+      "/"
+    );
+  }, [emailVerifiedRedirect]);
+
+
+  // ==========================================================
+  // EMAIL VERIFICATION
+  // ==========================================================
+
+  const isEmailVerificationPage =
+    window.location.pathname === "/verify-email";
+
+  const emailVerificationToken =
+    new URLSearchParams(window.location.search).get("token");
+
+  const [emailVerificationStatus, setEmailVerificationStatus] =
+    useState("checking");
+
+  const [emailVerificationMessage, setEmailVerificationMessage] =
+    useState("");
+
+  const [emailVerificationError, setEmailVerificationError] =
     useState("");
 
 
@@ -442,6 +513,60 @@ function App() {
   const messagesContainerRef =
     useRef(null);
 
+
+  // ==========================================================
+  // VERIFY EMAIL LINK
+  // ==========================================================
+
+  // Prevent React StrictMode from sending the same single-use
+  // verification token twice during development.
+  const emailVerificationStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEmailVerificationPage) {
+      return;
+    }
+
+    if (!emailVerificationToken) {
+      setEmailVerificationStatus("error");
+      setEmailVerificationError(
+        "This email verification link is missing its token."
+      );
+      return;
+    }
+
+    if (emailVerificationStartedRef.current) {
+      return;
+    }
+
+    emailVerificationStartedRef.current = true;
+
+    const verifyEmailAddress = async () => {
+      try {
+        setEmailVerificationStatus("checking");
+        setEmailVerificationError("");
+        setEmailVerificationMessage("");
+
+        await verifyEmail(emailVerificationToken);
+
+        // The verification token is single-use. Once the backend
+        // accepts it, immediately send the user back to the sign-in
+        // page. Do not sign the user in automatically.
+        window.location.replace("/?verified=1");
+      } catch (error) {
+        console.error("EMAIL VERIFICATION ERROR:", error);
+
+        setEmailVerificationStatus("error");
+        setEmailVerificationError(
+          error.response?.data?.detail ||
+          error.message ||
+          "This verification link is invalid or has expired."
+        );
+      }
+    };
+
+    verifyEmailAddress();
+  }, [isEmailVerificationPage, emailVerificationToken]);
 
   // Close attachment popup when clicking anywhere outside it.
   useEffect(() => {
@@ -885,7 +1010,7 @@ function App() {
 
 
           setAuthMessage(
-            "Registration successful. You can now log in."
+            "Registration successful. Please check your email and click the verification link before signing in."
           );
 
 
@@ -951,6 +1076,312 @@ function App() {
       }
 
     };
+
+
+  // ==========================================================
+  // FORGOT PASSWORD
+  // ==========================================================
+
+  const handleForgotPassword =
+    async (event) => {
+
+      event.preventDefault();
+
+      setAuthError("");
+      setAuthMessage("");
+
+      if (!forgotPasswordEmail.trim()) {
+
+        setAuthError(
+          "Please enter your email."
+        );
+
+        return;
+
+      }
+
+      try {
+
+        setAuthLoading(true);
+
+        const data =
+          await forgotPassword(
+            forgotPasswordEmail
+          );
+
+        setAuthMessage(
+          data?.message ||
+          "If an account with that email exists, a password reset link has been sent."
+        );
+
+      } catch (error) {
+
+        console.error(
+          "FORGOT PASSWORD ERROR:",
+          error
+        );
+
+        setAuthError(
+          error.response?.data?.detail ||
+          error.message ||
+          "Unable to send password reset email."
+        );
+
+      } finally {
+
+        setAuthLoading(false);
+
+      }
+
+    };
+
+
+  // ==========================================================
+  // RESET PASSWORD
+  // ==========================================================
+
+  const handleResetPassword =
+    async (event) => {
+
+      event.preventDefault();
+
+      setAuthError("");
+      setAuthMessage("");
+
+      if (!resetPasswordToken) {
+
+        setAuthError(
+          "This password reset link is missing its token."
+        );
+
+        return;
+
+      }
+
+      if (!resetPasswordValue) {
+
+        setAuthError(
+          "Please enter a new password."
+        );
+
+        return;
+
+      }
+
+      if (resetPasswordValue.length < 6) {
+
+        setAuthError(
+          "Password must contain at least 6 characters."
+        );
+
+        return;
+
+      }
+
+      if (
+        new TextEncoder().encode(resetPasswordValue).length > 72
+      ) {
+
+        setAuthError(
+          "Password must be 72 bytes or fewer."
+        );
+
+        return;
+
+      }
+
+      if (
+        resetPasswordValue !== resetConfirmPassword
+      ) {
+
+        setAuthError(
+          "Passwords do not match."
+        );
+
+        return;
+
+      }
+
+      try {
+
+        setAuthLoading(true);
+
+        const data =
+          await resetPassword(
+            resetPasswordToken,
+            resetPasswordValue
+          );
+
+        setResetPasswordValue("");
+        setResetConfirmPassword("");
+
+        window.history.replaceState(
+          {},
+          "",
+          "/"
+        );
+
+        setAuthMode("login");
+        setAuthError("");
+        setAuthMessage(
+          data?.message ||
+          "Password reset successfully. Please sign in with your new password."
+        );
+
+      } catch (error) {
+
+        console.error(
+          "RESET PASSWORD ERROR:",
+          error
+        );
+
+        setAuthError(
+          error.response?.data?.detail ||
+          error.message ||
+          "Unable to reset your password."
+        );
+
+      } finally {
+
+        setAuthLoading(false);
+
+      }
+
+    };
+
+
+  // ==========================================================
+  // CONTINUE WITH GOOGLE
+  // ==========================================================
+
+  const handleGoogleCredential =
+    async (response) => {
+
+      if (!response?.credential) {
+        setAuthError(
+          "Google sign-in did not return a valid credential."
+        );
+        return;
+      }
+
+      try {
+
+        setAuthLoading(true);
+        setAuthError("");
+        setAuthMessage("");
+
+        const data =
+          await loginWithGoogle(
+            response.credential
+          );
+
+        localStorage.setItem(
+          "access_token",
+          data.access_token
+        );
+
+        localStorage.setItem(
+          "user_id",
+          data.user_id
+        );
+
+        setToken(
+          data.access_token
+        );
+
+        setUserId(
+          data.user_id
+        );
+
+        setUserEmail(
+          data.email || ""
+        );
+
+      } catch (error) {
+
+        console.error(
+          "GOOGLE AUTH ERROR:",
+          error
+        );
+
+        setAuthError(
+          error.response?.data?.detail ||
+          error.message ||
+          "Unable to sign in with Google."
+        );
+
+      } finally {
+
+        setAuthLoading(false);
+
+      }
+
+    };
+
+
+  // ==========================================================
+  // INITIALIZE GOOGLE SIGN-IN BUTTON
+  // ==========================================================
+
+  useEffect(() => {
+
+    if (token) {
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      return;
+    }
+
+    const clientId =
+      import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      console.error(
+        "VITE_GOOGLE_CLIENT_ID is not configured."
+      );
+      return;
+    }
+
+    const buttonContainer =
+      document.getElementById(
+        "google-signin-button"
+      );
+
+    if (!buttonContainer) {
+      return;
+    }
+
+    buttonContainer.innerHTML = "";
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+
+      callback:
+        handleGoogleCredential,
+
+      ux_mode: "popup",
+
+      auto_select: false
+    });
+
+    window.google.accounts.id.renderButton(
+      buttonContainer,
+      {
+        type: "standard",
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        width: 360,
+        logo_alignment: "left"
+      }
+    );
+
+  }, [
+    token,
+    authMode
+  ]);
 
 
   // ==========================================================
@@ -3088,6 +3519,279 @@ function App() {
 
 
   // ==========================================================
+  // RESET PASSWORD PAGE
+  // ==========================================================
+
+  if (isResetPasswordPage) {
+
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+
+          <h1>
+            Reset password
+          </h1>
+
+          <p className="auth-subtitle">
+            Create a new password for your RAG Assistant account.
+          </p>
+
+          {!resetPasswordToken && (
+            <div className="error-message">
+              This password reset link is missing its token.
+            </div>
+          )}
+
+          {resetPasswordToken && (
+            <form
+              onSubmit={handleResetPassword}
+            >
+
+              <label>
+                New password
+              </label>
+
+              <div className="password-input-wrap">
+
+                <input
+                  type={showResetPassword ? "text" : "password"}
+                  placeholder="Enter your new password"
+                  value={resetPasswordValue}
+                  onChange={
+                    event =>
+                      setResetPasswordValue(
+                        event.target.value
+                      )
+                  }
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={
+                    showResetPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  onClick={() =>
+                    setShowResetPassword(
+                      previous => !previous
+                    )
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    {showResetPassword ? (
+                      <>
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5.2 0 9.2 3.4 10.5 8a11.7 11.7 0 0 1-3.2 5.1" />
+                        <path d="M6.2 6.2A11.8 11.8 0 0 0 1.5 12c1.3 4.6 5.3 8 10.5 8 1.5 0 2.9-.3 4.1-.8" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+                        <circle cx="12" cy="12" r="2.5" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+
+              </div>
+
+              <label>
+                Confirm new password
+              </label>
+
+              <div className="password-input-wrap">
+
+                <input
+                  type={showResetConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your new password"
+                  value={resetConfirmPassword}
+                  onChange={
+                    event =>
+                      setResetConfirmPassword(
+                        event.target.value
+                      )
+                  }
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={
+                    showResetConfirmPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                  onClick={() =>
+                    setShowResetConfirmPassword(
+                      previous => !previous
+                    )
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    {showResetConfirmPassword ? (
+                      <>
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c5.2 0 9.2 3.4 10.5 8a11.7 11.7 0 0 1-3.2 5.1" />
+                        <path d="M6.2 6.2A11.8 11.8 0 0 0 1.5 12c1.3 4.6 5.3 8 10.5 8 1.5 0 2.9-.3 4.1-.8" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
+                        <circle cx="12" cy="12" r="2.5" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+
+              </div>
+
+              {authError && (
+                <div className="error-message">
+                  {authError}
+                </div>
+              )}
+
+              {authMessage && (
+                <div className="success-message">
+                  {authMessage}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="login-button"
+                disabled={authLoading}
+              >
+                {authLoading
+                  ? "Please wait..."
+                  : "Reset password"
+                }
+              </button>
+
+            </form>
+          )}
+
+          <button
+            type="button"
+            className="auth-switch"
+            onClick={() => {
+              window.history.replaceState(
+                {},
+                "",
+                "/"
+              );
+
+              setAuthMode("login");
+              setAuthError("");
+              setAuthMessage("");
+            }}
+          >
+            ← Back to sign in
+          </button>
+
+        </div>
+      </div>
+    );
+
+  }
+
+
+  // ==========================================================
+  // EMAIL VERIFICATION PAGE
+  // ==========================================================
+
+  if (isEmailVerificationPage) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+
+          <h1>
+            {emailVerificationStatus === "success"
+              ? "Email verified"
+              : emailVerificationStatus === "checking"
+                ? "Verifying your email"
+                : "Verification failed"}
+          </h1>
+
+          <p className="auth-subtitle">
+            {emailVerificationStatus === "success"
+              ? "Your RAG Assistant account is ready."
+              : emailVerificationStatus === "checking"
+                ? "Please wait while we verify your email address."
+                : "We could not verify your email address."}
+          </p>
+
+          {emailVerificationStatus === "checking" && (
+            <div className="success-message">
+              Checking your verification link...
+            </div>
+          )}
+
+          {emailVerificationStatus === "success" && (
+            <>
+              <div className="success-message">
+                {emailVerificationMessage}
+              </div>
+
+              <button
+                type="button"
+                className="login-button"
+                onClick={() => {
+                  window.history.replaceState(
+                    {},
+                    "",
+                    "/"
+                  );
+
+                  window.location.reload();
+                }}
+              >
+                Sign in
+              </button>
+            </>
+          )}
+
+          {emailVerificationStatus === "error" && (
+            <>
+              <div className="error-message">
+                {emailVerificationError}
+              </div>
+
+              <button
+                type="button"
+                className="login-button"
+                onClick={() => {
+                  window.history.replaceState(
+                    {},
+                    "",
+                    "/"
+                  );
+
+                  window.location.reload();
+                }}
+              >
+                Back to sign in
+              </button>
+            </>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+
+  // ==========================================================
   // LOGIN PAGE
   // ==========================================================
 
@@ -3103,7 +3807,9 @@ function App() {
 
             {authMode === "login"
               ? "Welcome back"
-              : "Create account"
+              : authMode === "register"
+                ? "Create account"
+                : "Forgot password"
             }
 
           </h1>
@@ -3113,11 +3819,74 @@ function App() {
 
             {authMode === "login"
               ? "Sign in to your RAG Assistant"
-              : "Create your RAG Assistant account"
+              : authMode === "register"
+                ? "Create your RAG Assistant account"
+                : "Enter your email to receive a password reset link"
             }
 
           </p>
 
+
+          {authMode === "forgot-password" ? (
+
+            <form
+              onSubmit={handleForgotPassword}
+            >
+
+              <label>
+                Email
+              </label>
+
+              <input
+                type="email"
+                placeholder="Enter your registered email"
+                value={forgotPasswordEmail}
+                onChange={
+                  event =>
+                    setForgotPasswordEmail(
+                      event.target.value
+                    )
+                }
+              />
+
+              {authError && (
+                <div className="error-message">
+                  {authError}
+                </div>
+              )}
+
+              {authMessage && (
+                <div className="success-message">
+                  {authMessage}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="login-button"
+                disabled={authLoading}
+              >
+                {authLoading
+                  ? "Please wait..."
+                  : "Send reset link"
+                }
+              </button>
+
+              <button
+                type="button"
+                className="auth-switch"
+                onClick={() => {
+                  setAuthMode("login");
+                  setAuthError("");
+                  setAuthMessage("");
+                }}
+              >
+                ← Back to sign in
+              </button>
+
+            </form>
+
+          ) : (
 
           <form
             onSubmit={handleAuth}
@@ -3312,6 +4081,24 @@ function App() {
 
           </form>
 
+          )}
+
+
+          {authMode === "login" && (
+            <>
+          <button
+            type="button"
+            className="auth-switch"
+            onClick={() => {
+              setAuthMode("forgot-password");
+              setAuthError("");
+              setAuthMessage("");
+              setForgotPasswordEmail(email);
+            }}
+          >
+            Forgot password?
+          </button>
+
 
           <div className="auth-divider" aria-hidden="true">
             <span></span>
@@ -3320,19 +4107,25 @@ function App() {
           </div>
 
 
-          <button
-            type="button"
-            className="google-auth-button"
-            onClick={() => {}}
+          <div
+            id="google-signin-button"
+            className="google-signin-container"
             aria-label="Continue with Google"
           >
-            <span className="google-icon" aria-hidden="true">
-              G
-            </span>
-            <span>
-              Continue with Google
-            </span>
-          </button>
+            <button
+              type="button"
+              className="google-auth-button"
+              disabled
+              aria-label="Continue with Google"
+            >
+              <span className="google-icon" aria-hidden="true">
+                G
+              </span>
+              <span>
+                Continue with Google
+              </span>
+            </button>
+          </div>
 
 
           <button
@@ -3359,6 +4152,9 @@ function App() {
             }
 
           </button>
+
+            </>
+          )}
 
         </div>
 
