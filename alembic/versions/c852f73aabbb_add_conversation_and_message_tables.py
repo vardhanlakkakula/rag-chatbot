@@ -44,27 +44,7 @@ depends_on: Union[
 def upgrade() -> None:
 
     # --------------------------------------------------------
-    # 1. Make document_id unique
-    #
-    # This allows conversations.document_id to reference
-    # documents.document_id.
-    # --------------------------------------------------------
-
-    op.drop_index(
-        "ix_documents_document_id",
-        table_name="documents"
-    )
-
-    op.create_index(
-        "ix_documents_document_id",
-        "documents",
-        ["document_id"],
-        unique=True
-    )
-
-
-    # --------------------------------------------------------
-    # 2. Create conversations table
+    # 1. Create conversations table
     # --------------------------------------------------------
 
     op.create_table(
@@ -165,7 +145,7 @@ def upgrade() -> None:
 
 
     # --------------------------------------------------------
-    # 3. Create messages table
+    # 2. Create messages table
     # --------------------------------------------------------
 
     op.create_table(
@@ -284,21 +264,4 @@ def downgrade() -> None:
 
     op.drop_table(
         "conversations"
-    )
-
-
-    # --------------------------------------------------------
-    # Restore normal document_id index
-    # --------------------------------------------------------
-
-    op.drop_index(
-        "ix_documents_document_id",
-        table_name="documents"
-    )
-
-    op.create_index(
-        "ix_documents_document_id",
-        "documents",
-        ["document_id"],
-        unique=False
     )
