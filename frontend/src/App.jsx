@@ -4086,74 +4086,70 @@ function App() {
 
           {authMode === "login" && (
             <>
-          <button
-            type="button"
-            className="auth-switch"
-            onClick={() => {
-              setAuthMode("forgot-password");
-              setAuthError("");
-              setAuthMessage("");
-              setForgotPasswordEmail(email);
-            }}
-          >
-            Forgot password?
-          </button>
+              <button
+                type="button"
+                className="auth-switch"
+                onClick={() => {
+                  setAuthMode("forgot-password");
+                  setAuthError("");
+                  setAuthMessage("");
+                  setForgotPasswordEmail(email);
+                }}
+              >
+                Forgot password?
+              </button>
 
 
-          <div className="auth-divider" aria-hidden="true">
-            <span></span>
-            <em>or</em>
-            <span></span>
-          </div>
+              <div className="auth-divider" aria-hidden="true">
+                <span></span>
+                <em>or</em>
+                <span></span>
+              </div>
 
 
-          <div
-            id="google-signin-button"
-            className="google-signin-container"
-            aria-label="Continue with Google"
-          >
+              <div
+                id="google-signin-button"
+                className="google-signin-container"
+                aria-label="Continue with Google"
+              >
+                <button
+                  type="button"
+                  className="google-auth-button"
+                  disabled
+                  aria-label="Continue with Google"
+                >
+                  <span className="google-icon" aria-hidden="true">
+                    G
+                  </span>
+                  <span>
+                    Continue with Google
+                  </span>
+                </button>
+              </div>
+            </>
+          )}
+
+
+          {authMode !== "forgot-password" && (
             <button
               type="button"
-              className="google-auth-button"
-              disabled
-              aria-label="Continue with Google"
+              className="auth-switch"
+              onClick={() => {
+                setAuthMode(
+                  authMode === "login"
+                    ? "register"
+                    : "login"
+                );
+
+                setAuthError("");
+                setAuthMessage("");
+              }}
             >
-              <span className="google-icon" aria-hidden="true">
-                G
-              </span>
-              <span>
-                Continue with Google
-              </span>
+              {authMode === "login"
+                ? "Don't have an account? Create one"
+                : "Already have an account? Sign in"
+              }
             </button>
-          </div>
-
-
-          <button
-            type="button"
-            className="auth-switch"
-            onClick={() => {
-
-              setAuthMode(
-                authMode === "login"
-                  ? "register"
-                  : "login"
-              );
-
-              setAuthError("");
-
-              setAuthMessage("");
-
-            }}
-          >
-
-            {authMode === "login"
-              ? "Don't have an account? Create one"
-              : "Already have an account? Sign in"
-            }
-
-          </button>
-
-            </>
           )}
 
         </div>
