@@ -480,7 +480,11 @@ function App() {
     useState("");
 
   const [sidebarOpen, setSidebarOpen] =
-    useState(true);
+    useState(() =>
+      typeof window !== "undefined"
+        ? window.innerWidth > 768
+        : true
+    );
 
   const [accountMenuOpen, setAccountMenuOpen] =
     useState(false);
@@ -593,6 +597,20 @@ function App() {
     };
   }, [attachmentMenuOpen]);
 
+
+  useEffect(() => {
+    const handleViewportResize = () => {
+      if (window.innerWidth > 768) {
+        setSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener("resize", handleViewportResize);
+
+    return () => {
+      window.removeEventListener("resize", handleViewportResize);
+    };
+  }, []);
 
   useEffect(() => {
     conversationIdRef.current = selectedConversationId;
@@ -1420,6 +1438,8 @@ function App() {
         null
       );
 
+      setSidebarOpen(false);
+
       setSelectedDocument(null);
 
       try {
@@ -1783,6 +1803,7 @@ function App() {
       // Never carry the previously open chat's document into this chat.
       setSelectedDocument(null);
       setSelectedConversationId(targetConversationId);
+        setSidebarOpen(false);
 
       try {
 
@@ -4677,6 +4698,15 @@ function App() {
           MAIN
           ====================================================== */}
 
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="mobile-sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        />
+      )}
+
       <main
         className={
           `rag-main ${
@@ -4693,6 +4723,18 @@ function App() {
             ==================================================== */}
 
         <header className="main-header">
+
+          <button
+            type="button"
+            className="mobile-sidebar-button"
+            onClick={() => setSidebarOpen(previous => !previous)}
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
 
           <div className="header-title-area">
 

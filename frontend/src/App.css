@@ -1,9 +1,3 @@
-
-
-
-
-
-
 /* ============================================================
    RAG ASSISTANT UI
    ============================================================ */
@@ -3406,5 +3400,521 @@ body {
   .auth-card {
     margin: auto !important;
     padding: 28px 22px !important;
+  }
+}
+
+
+/* ============================================================
+   MOBILE-ONLY RESPONSIVE UI
+   Desktop / laptop styles above remain unchanged.
+   ============================================================ */
+
+.mobile-sidebar-button,
+.mobile-sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Keep the app fixed to the mobile viewport. */
+  .rag-app {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  /*
+   * Mobile sidebar:
+   * It becomes a drawer instead of taking layout width.
+   * The desktop sidebar is not changed.
+   */
+  .rag-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    width: min(86vw, 320px) !important;
+    height: 100dvh !important;
+    flex: none !important;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    box-shadow: 18px 0 55px rgba(0, 0, 0, 0.42);
+  }
+
+  /*
+   * sidebarOpen is controlled by App.jsx.
+   * When the sidebar exists on mobile, it is visible.
+   */
+  .rag-sidebar:not(.sidebar-collapsed) {
+    transform: translateX(0);
+  }
+
+  /*
+   * The sidebar is rendered regardless of state, so use the
+   * main-area class to hide the drawer when it is collapsed.
+   */
+  .rag-main.sidebar-collapsed ~ .rag-sidebar {
+    transform: translateX(-105%);
+  }
+
+  .mobile-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.48);
+    cursor: pointer;
+  }
+
+  /*
+   * Main content always occupies the complete mobile width.
+   */
+  .rag-main,
+  .rag-main.sidebar-hidden {
+    width: 100%;
+    min-width: 0;
+    height: 100dvh;
+    padding: 8px 8px 10px !important;
+  }
+
+  .workspace {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+  }
+
+  /*
+   * Mobile header.
+   */
+  .main-header {
+    min-height: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 2px 8px;
+  }
+
+  .mobile-sidebar-button {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: #101925;
+    color: #d5dbe6;
+  }
+
+  .mobile-sidebar-button:hover,
+  .mobile-sidebar-button:active {
+    background: #172235;
+    color: white;
+  }
+
+  .mobile-sidebar-button span {
+    display: block;
+    width: 17px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+
+  .header-title-area {
+    min-width: 0;
+    flex: 1;
+    text-align: left;
+  }
+
+  .header-title-area h1,
+  .workspace-topbar h1 {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 17px;
+  }
+
+  .selected-document-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+  }
+
+  .connection-status {
+    display: none !important;
+  }
+
+  /*
+   * Welcome screen.
+   */
+  .welcome-card {
+    min-height: 0;
+    height: 100%;
+    border-radius: 12px;
+  }
+
+  .welcome-center {
+    width: calc(100% - 24px);
+    max-width: none;
+    padding: 20px 0 72px;
+  }
+
+  .welcome-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 14px;
+  }
+
+  .welcome-center h2 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .welcome-center > p {
+    margin: 8px 0 22px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /*
+   * The four quick actions become two columns on phones.
+   */
+  .quick-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 7px;
+    margin-top: 18px;
+  }
+
+  .quick-actions button {
+    min-height: 62px;
+    padding: 8px;
+    gap: 7px;
+    border-radius: 10px;
+  }
+
+  .quick-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .quick-actions strong {
+    font-size: 10px;
+  }
+
+  .quick-actions small {
+    font-size: 8px;
+  }
+
+  /*
+   * Mobile composer.
+   * Keep plus + input + send button on one line.
+   */
+  .main-input-area {
+    width: calc(100% - 16px) !important;
+    max-width: none;
+  }
+
+  .rag-input {
+    width: 100% !important;
+    min-height: 54px;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 15px;
+  }
+
+  .plus-button {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 10px;
+  }
+
+  .chat-text-input {
+    min-width: 0;
+    height: 40px;
+    padding: 0 5px;
+    font-size: 14px;
+  }
+
+  .send-button {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 10px;
+  }
+
+  /*
+   * Attachment popup stays inside the phone viewport.
+   */
+  .attachment-popup,
+  .attachment-menu {
+    left: 0;
+    width: min(300px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .attachment-preview-list {
+    width: 100%;
+  }
+
+  .attachment-preview {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 72px !important;
+    padding: 10px 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .attachment-file-details .attachment-name {
+    max-width: calc(100vw - 130px);
+    font-size: 14px !important;
+  }
+
+  .attachment-file-details small {
+    font-size: 12px !important;
+  }
+
+  /*
+   * Conversation view.
+   */
+  .conversation-card {
+    min-height: 0;
+    height: 100%;
+    border-radius: 12px;
+  }
+
+  .conversation-messages {
+    min-width: 0;
+    padding: 18px 10px 132px !important;
+    overscroll-behavior: contain;
+  }
+
+  .conversation-block {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 28px;
+  }
+
+  .user-row {
+    margin-bottom: 14px;
+  }
+
+  .user-message {
+    max-width: 88% !important;
+    padding: 10px 12px;
+    border-radius: 16px 16px 5px 16px;
+    font-size: 14px !important;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .assistant-row {
+    gap: 8px;
+  }
+
+  .assistant-icon {
+    width: 29px;
+    height: 29px;
+    flex: 0 0 29px;
+    border-radius: 8px;
+  }
+
+  .assistant-content {
+    min-width: 0;
+    max-width: calc(100% - 37px);
+  }
+
+  .assistant-name {
+    margin: 2px 0 6px;
+    font-size: 11px;
+  }
+
+  .assistant-answer {
+    max-width: 100%;
+    font-size: 14px !important;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .conversation-sources {
+    margin-top: 15px;
+    padding-top: 10px;
+  }
+
+  .conversation-source {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .conversation-source > div {
+    min-width: 0;
+  }
+
+  /*
+   * Fixed composer at the bottom of the conversation.
+   */
+  .conversation-composer-area {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 8px 9px calc(10px + env(safe-area-inset-bottom)) !important;
+    background:
+      linear-gradient(
+        to bottom,
+        transparent,
+        #0d1521 26%
+      );
+  }
+
+  .conversation-composer-area .rag-input {
+    width: 100% !important;
+  }
+
+  .conversation-attachments {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 6px;
+  }
+
+  /*
+   * Mobile account/sidebar content.
+   */
+  .sidebar-header {
+    height: 72px;
+    padding: 12px 14px 9px;
+  }
+
+  .sidebar-scroll {
+    padding: 0 14px 10px;
+    overflow-x: hidden !important;
+  }
+
+  .new-chat-button {
+    margin: 0 14px 14px;
+  }
+
+  .sidebar-user {
+    margin: 0 14px 14px;
+  }
+
+  .recent-delete,
+  .document-row .document-delete {
+    opacity: 1 !important;
+  }
+
+  /*
+   * Prevent long filenames / text from creating horizontal scrolling.
+   */
+  .recent-chat,
+  .document-row,
+  .document-details,
+  .recent-chat-content,
+  .attachment-info,
+  .attachment-file-details {
+    min-width: 0;
+  }
+
+  .recent-chat-title,
+  .document-details strong,
+  .attachment-file-details .attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /*
+   * Small-phone adjustments.
+   */
+  @media (max-width: 430px) {
+    .rag-main,
+    .rag-main.sidebar-hidden {
+      padding: 6px 6px 8px !important;
+    }
+
+    .main-header {
+      min-height: 46px;
+      height: 46px;
+      padding-bottom: 6px;
+    }
+
+    .mobile-sidebar-button {
+      width: 38px;
+      height: 38px;
+      flex-basis: 38px;
+    }
+
+    .header-title-area h1,
+    .workspace-topbar h1 {
+      font-size: 16px;
+    }
+
+    .welcome-center {
+      width: calc(100% - 16px);
+      padding-top: 14px;
+    }
+
+    .welcome-center h2 {
+      font-size: 22px;
+    }
+
+    .quick-actions button {
+      min-height: 58px;
+      padding: 7px;
+    }
+
+    .quick-actions strong {
+      font-size: 9px;
+    }
+
+    .quick-actions small {
+      font-size: 7px;
+    }
+
+    .conversation-messages {
+      padding-left: 8px !important;
+      padding-right: 8px !important;
+    }
+
+    .user-message {
+      max-width: 92% !important;
+    }
+
+    .conversation-composer-area {
+      padding-left: 7px !important;
+      padding-right: 7px !important;
+    }
+
+    .rag-input {
+      min-height: 52px;
+      padding: 5px;
+    }
+
+    .plus-button,
+    .send-button {
+      width: 39px;
+      height: 39px;
+      flex-basis: 39px;
+    }
+
+    .chat-text-input {
+      height: 39px;
+      font-size: 13px;
+    }
   }
 }
