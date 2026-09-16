@@ -602,6 +602,8 @@ function App() {
     const handleViewportResize = () => {
       if (window.innerWidth > 768) {
         setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
       }
     };
 

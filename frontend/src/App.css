@@ -3443,19 +3443,16 @@ body {
   }
 
   /*
-   * sidebarOpen is controlled by App.jsx.
-   * When the sidebar exists on mobile, it is visible.
+   * On mobile the sidebar is a drawer.
+   * It stays hidden until App.jsx renders the overlay, which means
+   * sidebarOpen is true. This keeps desktop behavior unchanged.
    */
-  .rag-sidebar:not(.sidebar-collapsed) {
-    transform: translateX(0);
+  .rag-sidebar {
+    transform: translateX(-105%);
   }
 
-  /*
-   * The sidebar is rendered regardless of state, so use the
-   * main-area class to hide the drawer when it is collapsed.
-   */
-  .rag-main.sidebar-collapsed ~ .rag-sidebar {
-    transform: translateX(-105%);
+  .rag-sidebar:has(+ .mobile-sidebar-overlay) {
+    transform: translateX(0);
   }
 
   .mobile-sidebar-overlay {
