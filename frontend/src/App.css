@@ -3915,3 +3915,78 @@ body {
     }
   }
 }
+
+/* ============================================================
+   MOBILE COMPOSER + VIEWPORT STABILITY FIX
+   Mobile only — desktop/laptop UI remains unchanged.
+   ============================================================ */
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body {
+    overflow-x: hidden !important;
+  }
+
+  .rag-app {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+  }
+
+  .rag-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+  }
+
+  /*
+   * The actual JSX uses .conversation-input-wrapper.
+   * Keep it attached to the phone viewport so it cannot disappear
+   * when the conversation content reflows after a message is sent.
+   */
+  .conversation-input-wrapper {
+    position: fixed !important;
+    left: 6px !important;
+    right: 6px !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 6px) !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 10000 !important;
+    box-sizing: border-box !important;
+    padding: 6px 0 !important;
+  }
+
+  .conversation-input-wrapper .rag-input {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Keep enough scroll space for the fixed composer. */
+  .conversation-messages {
+    padding-bottom: 140px !important;
+  }
+
+  /* Login page follows the real mobile viewport automatically. */
+  .auth-page {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    box-sizing: border-box !important;
+    padding: 18px 12px !important;
+  }
+
+  .auth-card {
+    width: min(440px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    box-sizing: border-box !important;
+    padding: 26px 18px !important;
+  }
+}
